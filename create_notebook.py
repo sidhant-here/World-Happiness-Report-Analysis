@@ -51,7 +51,10 @@ pn.extension('tabulator', design='material')
 df_clean = df.dropna(subset=['GDP_Impact', 'Social_Support', 'Life_Expectancy_Impact']).copy()
 year_slider = pn.widgets.IntSlider(name='Select Year', start=int(df_clean.Year.min()), end=int(df_clean.Year.max()), step=1, value=2025, align='center', sizing_mode='stretch_width')
 
-idf = df_clean.interactive()
+idf = df_clean.interactive()"""))
+
+cells.append(nbf.v4.new_markdown_cell("""### 1. Top 10 Happiest Countries"""))
+cells.append(nbf.v4.new_code_cell("""# 1. Top 10 Bar (hvplot)
 
 # 1. Top 10 Bar (hvplot)
 top_10_bar = (
@@ -62,7 +65,10 @@ top_10_bar = (
             color='Happiness_Score', cmap='GnBu', rot=45, height=350, responsive=True)
 )
 
-# 2. Table
+top_10_bar"""))
+
+cells.append(nbf.v4.new_markdown_cell("""### 2. Happiness Leaderboard Table"""))
+cells.append(nbf.v4.new_code_cell("""# 2. Table
 top_10_table = (
     idf[idf.Year == year_slider][['Rank', 'Country', 'Happiness_Score']]
     .sort_values('Rank')
@@ -70,22 +76,47 @@ top_10_table = (
     .pipe(pn.widgets.Tabulator, pagination='remote', page_size=10, theme='bootstrap4', height=350, sizing_mode='stretch_width')
 )
 
-# 3. Scatter 1 (hvplot)
-gdp_scatter = (
-    idf[idf.Year == year_slider]
-    .hvplot(x='GDP_Impact', y='Happiness_Score', kind='scatter', 
+top_10_table"""))
+
+cells.append(nbf.v4.new_markdown_cell("""### 3. GDP vs Happiness Scatter"""))
+cells.append(nbf.v4.new_code_cell("""# 3. Scatter 1 (hvplot) with regression
+def plot_gdp_scatter(year):
+    df_yr = df_clean[df_clean.Year == year].copy()
+    scatter = df_yr.hvplot(x='GDP_Impact', y='Happiness_Score', kind='scatter', 
             hover_cols=['Country', 'Rank'], 
             color='Happiness_Score', cmap='GnBu', size=150, alpha=0.8, height=350, responsive=True)
-)
+    df_yr = df_yr.dropna(subset=['GDP_Impact', 'Happiness_Score'])
+    if len(df_yr) > 1:
+        m, b = np.polyfit(df_yr['GDP_Impact'], df_yr['Happiness_Score'], 1)
+        x_vals = np.array([df_yr['GDP_Impact'].min(), df_yr['GDP_Impact'].max()])
+        y_vals = m * x_vals + b
+        line = pd.DataFrame({'GDP_Impact': x_vals, 'Happiness_Score': y_vals}).hvplot(x='GDP_Impact', y='Happiness_Score', kind='line', color='#e11d48', line_dash='dashed', line_width=2, responsive=True, height=350)
+        return scatter * line
+    return scatter
 
-# 4. Scatter 2 (hvplot)
-social_scatter = (
-    idf[idf.Year == year_slider]
-    .hvplot(x='Social_Support', y='Life_Expectancy_Impact', kind='scatter',
+gdp_scatter = pn.bind(plot_gdp_scatter, year_slider)
+gdp_scatter"""))
+
+cells.append(nbf.v4.new_markdown_cell("""### 4. Social Support vs Life Expectancy"""))
+cells.append(nbf.v4.new_code_cell("""# 4. Scatter 2 (hvplot) with regression
+def plot_social_scatter(year):
+    df_yr = df_clean[df_clean.Year == year].copy()
+    scatter = df_yr.hvplot(x='Social_Support', y='Life_Expectancy_Impact', kind='scatter',
             hover_cols=['Country'], color='Happiness_Score', cmap='plasma', size=150, alpha=0.8, height=350, responsive=True)
-)
+    df_yr = df_yr.dropna(subset=['Social_Support', 'Life_Expectancy_Impact'])
+    if len(df_yr) > 1:
+        m, b = np.polyfit(df_yr['Social_Support'], df_yr['Life_Expectancy_Impact'], 1)
+        x_vals = np.array([df_yr['Social_Support'].min(), df_yr['Social_Support'].max()])
+        y_vals = m * x_vals + b
+        line = pd.DataFrame({'Social_Support': x_vals, 'Life_Expectancy_Impact': y_vals}).hvplot(x='Social_Support', y='Life_Expectancy_Impact', kind='line', color='#e11d48', line_dash='dashed', line_width=2, responsive=True, height=350)
+        return scatter * line
+    return scatter
 
-# 5. Average Factors (Matplotlib bound function)
+social_scatter = pn.bind(plot_social_scatter, year_slider)
+social_scatter"""))
+
+cells.append(nbf.v4.new_markdown_cell("""### 5. Average Factors Impact"""))
+cells.append(nbf.v4.new_code_cell("""# 5. Average Factors (Matplotlib bound function)
 def plot_avg_factors(year):
     factors = ['GDP_Impact', 'Social_Support', 'Freedom', 'Life_Expectancy_Impact', 'Corruption_Impact', 'Generosity']
     avg_factors = df_clean[df_clean['Year'] == year][factors].mean().sort_values(ascending=False)
@@ -105,7 +136,10 @@ def plot_avg_factors(year):
     plt.close(fig)
     return fig
 
-# 6. Correlation Heatmap (Matplotlib bound function)
+plot_avg_factors(2025)"""))
+
+cells.append(nbf.v4.new_markdown_cell("""### 6. Correlation Heatmap"""))
+cells.append(nbf.v4.new_code_cell("""# 6. Correlation Heatmap (Matplotlib bound function)
 def plot_heatmap(year):
     cols = ['Happiness_Score', 'GDP_Impact', 'Social_Support', 'Life_Expectancy_Impact', 'Freedom', 'Generosity', 'Corruption_Impact']
     corr_df = df_clean[df_clean['Year'] == year][cols]
@@ -118,7 +152,10 @@ def plot_heatmap(year):
     plt.close(fig)
     return fig
 
-# 7. Trends (Static Matplotlib)
+plot_heatmap(2025)"""))
+
+cells.append(nbf.v4.new_markdown_cell("""### 7. Happiness Trends Over Time"""))
+cells.append(nbf.v4.new_code_cell("""# 7. Trends (Static Matplotlib)
 def plot_trends():
     top5 = ['Costa Rica', 'Denmark', 'Finland', 'Iceland', 'Sweden']
     trend = df_clean[df_clean['Country'].isin(top5)].pivot(index='Year', columns='Country', values='Happiness_Score')
@@ -136,10 +173,13 @@ def plot_trends():
     plt.close(fig)
     return fig
 
-# 8. Biggest Changes (Static Matplotlib)
+plot_trends()"""))
+
+cells.append(nbf.v4.new_markdown_cell("""### 8. Biggest Movers (2011-2025)"""))
+cells.append(nbf.v4.new_code_cell("""# 8. Biggest Changes (Static Matplotlib)
 def plot_changes():
-    d11 = df_clean[df_clean['Year'] == 2011].set_index('Country')['Happiness_Score']
-    d25 = df_clean[df_clean['Year'] == 2025].set_index('Country')['Happiness_Score']
+    d11 = df[df['Year'] == 2011].set_index('Country')['Happiness_Score']
+    d25 = df[df['Year'] == 2025].set_index('Country')['Happiness_Score']
     change = (d25 - d11).dropna()
     plot_df = pd.concat([change.nlargest(5), change.nsmallest(5)]).sort_values()
     
@@ -160,7 +200,10 @@ def plot_changes():
     plt.close(fig)
     return fig
 
-# Bind interactive functions
+plot_changes()"""))
+
+cells.append(nbf.v4.new_markdown_cell("""### 9. Interactive Dashboard"""))
+cells.append(nbf.v4.new_code_cell("""# Bind interactive functions
 avg_factors_pane = pn.bind(plot_avg_factors, year_slider)
 heatmap_pane = pn.bind(plot_heatmap, year_slider)
 
@@ -351,8 +394,8 @@ template = pn.template.FastListTemplate(
             card(top_10_table.panel(), '📋 Happiness Leaderboard'),
         ),
         pn.Row(
-            card(gdp_scatter.panel(), '💰 Happiness Score vs. GDP Impact'),
-            card(social_scatter.panel(), '🫂 Social Support vs. Life Expectancy'),
+            card(pn.panel(gdp_scatter, sizing_mode='stretch_width'), '💰 Happiness Score vs. GDP Impact'),
+            card(pn.panel(social_scatter, sizing_mode='stretch_width'), '🫂 Social Support vs. Life Expectancy'),
         ),
         pn.Row(
             card(pn.pane.Matplotlib(avg_factors_pane, sizing_mode='stretch_width', tight=True), '⚖️ Average Factor Impact on Happiness'),
@@ -397,6 +440,57 @@ r_soc = np.corrcoef(valid_corr_soc['Social_Support'], valid_corr_soc['Happiness_
 print(f'  Social Sup.-Happiness   : r = {r_soc:.4f}')
 
 print('=' * 60)"""))
+
+cells.append(nbf.v4.new_markdown_cell("""---
+## 📊 Static Summary Dashboard
+*A comprehensive 2x3 grid of key visualizations using Matplotlib and Seaborn.*"""))
+
+cells.append(nbf.v4.new_code_cell("""# 📊 FINAL DASHBOARD (ADD AT END)
+# ==============================
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+
+df25 = df[df['Year'] == 2025]
+
+plt.figure(figsize=(18,10))
+plt.suptitle('🌍 World Happiness Report 2025 — Static Summary Dashboard', fontsize=18, fontweight='bold', y=1.02)
+
+# 1. Happiness Score Distribution
+plt.subplot(2,3,1)
+sns.histplot(df25['Happiness_Score'], kde=True, color='skyblue')
+plt.title("Happiness Score Distribution")
+
+# 2. GDP vs Happiness
+plt.subplot(2,3,2)
+sns.regplot(data=df25, x='GDP_Impact', y='Happiness_Score', scatter_kws={'alpha':0.6}, line_kws={'color':'red', 'linestyle':'--'})
+plt.title("GDP Impact vs Happiness")
+
+# 3. Top 10 Countries
+plt.subplot(2,3,3)
+top10 = df25.nsmallest(10, 'Rank')
+sns.barplot(data=top10, y='Country', x='Happiness_Score', palette='viridis')
+plt.title("Top 10 Happiest Countries")
+
+# 4. Social Support vs Happiness
+plt.subplot(2,3,4)
+sns.regplot(data=df25, x='Social_Support', y='Happiness_Score', scatter_kws={'alpha':0.6}, line_kws={'color':'red', 'linestyle':'--'})
+plt.title("Social Support vs Happiness")
+
+# 5. Average Factors Contribution
+plt.subplot(2,3,5)
+factors = ['GDP_Impact', 'Social_Support', 'Freedom', 'Life_Expectancy_Impact', 'Corruption_Impact', 'Generosity']
+df25[factors].mean().sort_values().plot(kind='barh', color='teal')
+plt.title("Average Factor Impact")
+
+# 6. Global Happiness Trend
+plt.subplot(2,3,6)
+df.groupby('Year')['Happiness_Score'].mean().plot(marker='o', color='purple', linewidth=2)
+plt.title("Global Happiness Trend (2011-2025)")
+
+plt.tight_layout()
+plt.show()"""))
 
 nb['cells'] = cells
 
